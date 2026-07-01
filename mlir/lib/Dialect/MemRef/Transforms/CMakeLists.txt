@@ -2,7 +2,6 @@ add_mlir_dialect_library(MLIRMemRefTransforms
   AllocationOpInterfaceImpl.cpp
   BufferViewFlowOpInterfaceImpl.cpp
   ComposeSubView.cpp
-  ElideReinterpretCast.cpp
   ExpandOps.cpp
   ExpandRealloc.cpp
   ExpandStridedMetadata.cpp
@@ -10,6 +9,7 @@ add_mlir_dialect_library(MLIRMemRefTransforms
   EmulateNarrowType.cpp
   ExtractAddressComputations.cpp
   FlattenMemRefs.cpp
+  FlattenFuncArgs.cpp
   FoldMemRefAliasOps.cpp
   IndependenceTransforms.cpp
   MultiBuffer.cpp
@@ -31,13 +31,16 @@ add_mlir_dialect_library(MLIRMemRefTransforms
   MLIRArithTransforms
   MLIRDialectUtils
   MLIRFuncDialect
+  MLIRGPUDialect
   MLIRInferTypeOpInterface
   MLIRLoopLikeInterface
   MLIRMemRefDialect
   MLIRMemRefUtils
+  MLIRNVGPUDialect
   MLIRPass
   MLIRTensorDialect
   MLIRTransforms
   MLIRValueBoundsOpInterface
   MLIRVectorDialect
 )
+
