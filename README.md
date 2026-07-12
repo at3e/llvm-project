@@ -1,6 +1,8 @@
 # MLIR pass to flatten function arguments
 
-In this fork I have added a separate pass to flatten the memrefs of function arguments to address the limitation of the flatten-memref pass as meentioned here. I aim to complete flattening required for certain lowering pipelines.
+In this fork, I have introduced a dedicated pass to flatten the memrefs of function arguments, addressing the limitations of the existing [flatten‑memref pass](https://discourse.llvm.org/t/about-flattenmemrefspass/89770). This enhancement aims to ensure complete flattening where required for specific lowering pipelines.
+
+## Example
 
 
 
