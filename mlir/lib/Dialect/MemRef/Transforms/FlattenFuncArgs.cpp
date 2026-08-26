@@ -21,11 +21,8 @@ using namespace mlir;
 
 namespace {
 
-/// Returns the 1-D memref type that `type` should be flattened to, i.e. a
-/// `totalSize`-element memref with the same offset as `type` so that
-/// re-expanding it (via memref.expand_shape/collapse_shape) reconstructs the
-/// original strided layout. Returns failure if `type` is not a statically
-/// shaped, contiguous row-major memref (e.g. it has a non-default dimension
+/// Returns failure if `type` is not a statically shaped,
+/// contiguous row-major memref (e.g. it has a non-default dimension
 /// order or padding), since such a memref cannot be losslessly reshaped to
 /// 1-D via a plain reassociation.
 FailureOr<MemRefType> getFlattenedType(MemRefType type, int64_t totalSize) {
@@ -38,9 +35,7 @@ FailureOr<MemRefType> getFlattenedType(MemRefType type, int64_t totalSize) {
     return failure();
 
   // Allow flattening if the memref is provably contiguous row-major, or if
-  // its strides are entirely dynamic. In the latter case there's no static
-  // evidence of non-contiguity, so we trust the caller to supply a
-  // contiguous buffer at that (dynamic) stride/offset.
+  // its strides are entirely dynamic.
   bool allDynamicStrides = llvm::all_of(strides, ShapedType::isDynamic);
   if (!allDynamicStrides && !memref::isStaticShapeAndContiguousRowMajor(type))
     return failure();
@@ -63,6 +58,8 @@ void rewriteArgs(func::FuncOp funcOp) {
 
   for (BlockArgument arg : entryBlock.getArguments()) {
     auto memrefType = dyn_cast<MemRefType>(arg.getType());
+    // Check if the arg is not memref at all. If it is a memref, but already
+    // rank-0 or rank-1, there is no need to flatten.
     if (!memrefType || memrefType.getRank() <= 1) {
       rewriteArgTypes.push_back(arg.getType());
       continue;
@@ -72,10 +69,8 @@ void rewriteArgs(func::FuncOp funcOp) {
     for (int64_t dim : memrefType.getShape())
       totalSize *= dim;
 
-    // Preserve the memref's offset in the flat type (e.g. it may be a
-    // subview) so that re-expanding it below reconstructs the exact
-    // original strided layout. Bail out for shapes/layouts (dynamic shape,
-    // non-row-major strides, ...) that can't be flattened this way.
+    // If memref has non-static shape and non-contiguous strides, then rewriteArgs
+    // does not touch the offset and preserves the original arg type.
     FailureOr<MemRefType> flatType = getFlattenedType(memrefType, totalSize);
     if (failed(flatType)) {
       rewriteArgTypes.push_back(arg.getType());
@@ -90,7 +85,7 @@ void rewriteArgs(func::FuncOp funcOp) {
 
     // Re-expand the 1-D arg back to the original N-D shape so that every
     // use in the function body continues to see a correctly-typed value.
-    // Reassociation: all N output dims come from the single input dim 0.
+    // TO DO : memrefs across function body should be uniformly flattened.
     SmallVector<ReassociationIndices> reassociationDims;
     ReassociationIndices tempDims;
 
@@ -102,10 +97,7 @@ void rewriteArgs(func::FuncOp funcOp) {
     // Compute the result type from the flat source itself, rather than
     // reusing the original `memrefType`: when the source's strides were
     // originally fully dynamic (see getFlattenedType), re-expanding a
-    // provably-contiguous flat memref yields canonical strides (e.g. [2, 1]
-    // for a 2x2 shape), which is a more precise type than the original's
-    // symbolic `[?, ?]` — the two are not structurally equal, so the
-    // verifier rejects reusing `memrefType` outright in that case.
+    // provably-contiguous flat memref yields canonical strides. 
     FailureOr<MemRefType> expandedType =
         memref::ExpandShapeOp::computeExpandedType(
             *flatType, memrefType.getShape(), reassociationDims);
