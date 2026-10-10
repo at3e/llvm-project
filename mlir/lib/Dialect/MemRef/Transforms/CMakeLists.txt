@@ -10,6 +10,7 @@ add_mlir_dialect_library(MLIRMemRefTransforms
   ExtractAddressComputations.cpp
   FlattenMemRefs.cpp
   FlattenFuncArgs.cpp
+  FlattenContiguousMemref.cpp
   FoldMemRefAliasOps.cpp
   IndependenceTransforms.cpp
   MultiBuffer.cpp

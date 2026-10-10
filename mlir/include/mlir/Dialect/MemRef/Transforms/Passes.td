@@ -337,4 +337,28 @@ def FlattenMemrefsPass : Pass<"flatten-memref"> {
   ];
 }
 
+def FlattenContiguousMemrefPass
+    : Pass<"flatten-contiguous-memref", "func::FuncOp"> {
+  let summary = "Flatten contiguous multi-dimensional memrefs to 1-D";
+  let description = [{
+    Combines flatten-funcargs and flatten-memref. Every statically shaped
+    multi-dimensional memref whose strides prove it contiguous, whether a
+    function argument or a memref.alloc/alloca result, is retyped to a flat
+    1-D memref. Loads and stores on it (memref.load/store and 1-D
+    vector.load/store/maskedload/maskedstore/transfer_read/transfer_write)
+    are rewritten to index the flat memref directly with a linearized index,
+    so no memref.expand_shape or memref.reinterpret_cast is needed for them.
+    Any other user of such a memref gets an N-D view of it from a
+    memref.expand_shape.
+
+    Multi-dimensional memrefs passed to calls are collapsed to match the
+    callee's flattened parameters. Function results are dropped: every
+    func.return becomes an empty return, and calls to functions with a body
+    are rebuilt without results (it is an error if those results are used).
+  }];
+  let dependentDialects = [
+      "arith::ArithDialect", "func::FuncDialect", "memref::MemRefDialect"
+  ];
+}
+
 #endif // MLIR_DIALECT_MEMREF_TRANSFORMS_PASSES
